@@ -295,33 +295,33 @@ enum RCTVideoUtils {
         }
     }
     
-    static func prepareAsset(source:VideoSource) -> (asset:AVURLAsset?, assetOptions:NSMutableDictionary?)? {
-        guard let sourceUri = source.uri, sourceUri != "" else { return nil }
-//        guard let bundleId = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String else { return nil }
-//        let appGroupName = "group.\(bundleId)"
-//        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
-            
-        var asset:AVURLAsset!
-//        NSString *appGroupName = [NSString stringWithFormat:@"group.%@", bundleId];
+    
+    static func prepareAsset(source:VideoSource) -> (asset: AVURLAsset?, assetOptions: NSMutableDictionary?)? {
+        guard
+            let sourceUri = source.uri,
+            let url = URL(string: sourceUri)
+        else { return nil }
         
-//        let bundlePath = Bundle.main.path(forResource: source.uri, ofType: source.type) ?? ""
-        let url = URL(string: sourceUri)
-        let assetOptions:NSMutableDictionary! = NSMutableDictionary()
+        var assetOptions: NSMutableDictionary = NSMutableDictionary()
         
-        print("Test 1 \(source.isNetwork || source.isAsset ? "URL(string" : "URL(fileURLWithPath")")
-        print("Test 1 sourceUri: \(sourceUri)")
-        print("Test 1 url: \(url)")
-        
-        if source.isNetwork {
-            if let headers = source.requestHeaders, headers.count > 0 {
-                assetOptions.setObject(headers, forKey:"AVURLAssetHTTPHeaderFieldsKey" as NSCopying)
+        var asset: AVURLAsset? {
+            if source.isNetwork {
+                if let headers = source.requestHeaders, headers.count > 0 {
+                    assetOptions.setObject(headers, forKey: "AVURLAssetHTTPHeaderFieldsKey" as NSCopying)
+                }
+                
+                if let cookies = HTTPCookieStorage.shared.cookies {
+                    assetOptions.setObject(cookies, forKey: AVURLAssetHTTPCookiesKey as NSCopying)
+                }
+                
+                guard let assetOptions = assetOptions as? [String : Any] else { return nil }
+                
+                return AVURLAsset(url: url, options: assetOptions)
+            } else {
+                return AVURLAsset(url: url)
             }
-            let cookies:[AnyObject]! = HTTPCookieStorage.shared.cookies
-            assetOptions.setObject(cookies, forKey:AVURLAssetHTTPCookiesKey as NSCopying)
-            asset = AVURLAsset(url: url!, options:assetOptions as! [String : Any])
-        } else {
-            asset = AVURLAsset(url: url!)
         }
+        
         return (asset, assetOptions)
     }
     
