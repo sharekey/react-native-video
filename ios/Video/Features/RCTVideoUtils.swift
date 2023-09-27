@@ -299,7 +299,14 @@ enum RCTVideoUtils {
         guard
             let sourceUri = source.uri,
             let url = URL(string: sourceUri)
-        else { return nil }
+        else {
+            NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
+                                            object: ["log": "source.uri: \(source.uri ?? "")",
+                                                     "key": "iOS ErrorService",
+                                                     "append": true])
+            
+            return nil
+        }
         
         NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
                                         object: ["log": "prepareAsset uri: \(url)",
