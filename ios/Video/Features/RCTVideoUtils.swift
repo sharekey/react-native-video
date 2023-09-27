@@ -297,8 +297,7 @@ enum RCTVideoUtils {
     
     static func prepareAsset(source:VideoSource) -> (asset: AVURLAsset?, assetOptions: NSMutableDictionary?)? {
         guard
-            let sourceUri = source.uri,
-            let url = URL(string: sourceUri)
+            let sourceUri = source.uri
         else {
             NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
                                             object: ["log": "source.uri: \(source.uri ?? "")",
@@ -307,6 +306,8 @@ enum RCTVideoUtils {
             
             return nil
         }
+        
+        let url = URL(fileURLWithPath: sourceUri)
         
         NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
                                         object: ["log": "prepareAsset uri: \(url)",
