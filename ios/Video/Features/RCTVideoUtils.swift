@@ -297,11 +297,17 @@ enum RCTVideoUtils {
     
     static func prepareAsset(source:VideoSource) -> (asset:AVURLAsset?, assetOptions:NSMutableDictionary?)? {
         guard let sourceUri = source.uri, sourceUri != "" else { return nil }
+//        guard let bundleId = Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String else { return nil }
+//        let appGroupName = "group.\(bundleId)"
+//        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupName)
+            
         var asset:AVURLAsset!
-        let bundlePath = Bundle.main.path(forResource: source.uri, ofType: source.type) ?? ""
+//        NSString *appGroupName = [NSString stringWithFormat:@"group.%@", bundleId];
+        
+//        let bundlePath = Bundle.main.path(forResource: source.uri, ofType: source.type) ?? ""
         let url = source.isNetwork || source.isAsset
         ? URL(string: source.uri ?? "")
-        : URL(fileURLWithPath: bundlePath)
+        : URL(fileURLWithPath: sourceUri)
         let assetOptions:NSMutableDictionary! = NSMutableDictionary()
         
         if source.isNetwork {
