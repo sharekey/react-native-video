@@ -305,10 +305,12 @@ enum RCTVideoUtils {
 //        NSString *appGroupName = [NSString stringWithFormat:@"group.%@", bundleId];
         
 //        let bundlePath = Bundle.main.path(forResource: source.uri, ofType: source.type) ?? ""
-        let url = source.isNetwork || source.isAsset
-        ? URL(string: source.uri ?? "")
-        : URL(fileURLWithPath: sourceUri)
+        let url = URL(string: sourceUri)
         let assetOptions:NSMutableDictionary! = NSMutableDictionary()
+        
+        print("Test 1 \(source.isNetwork || source.isAsset ? "URL(string" : "URL(fileURLWithPath")")
+        print("Test 1 sourceUri: \(sourceUri)")
+        print("Test 1 url: \(url)")
         
         if source.isNetwork {
             if let headers = source.requestHeaders, headers.count > 0 {
