@@ -299,21 +299,10 @@ enum RCTVideoUtils {
         guard
             let sourceUri = source.uri
         else {
-            NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
-                                            object: ["log": "source.uri: \(source.uri ?? "")",
-                                                     "key": "iOS ErrorService",
-                                                     "append": true])
-            
             return nil
         }
         
         let url = URL(fileURLWithPath: sourceUri)
-        
-        NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
-                                        object: ["log": "prepareAsset uri: \(url)",
-                                                 "key": "iOS ErrorService",
-                                                 "append": true])
-        
         var assetOptions: NSMutableDictionary = NSMutableDictionary()
         
         var asset: AVURLAsset? {
@@ -327,12 +316,6 @@ enum RCTVideoUtils {
                 }
                 
                 guard let assetOptions = assetOptions as? [String : Any] else { return nil }
-                
-                NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
-                                                object: ["log": "prepareAsset as source.isNetwork",
-                                                         "key": "iOS ErrorService",
-                                                         "append": true])
-                
                 return AVURLAsset(url: url, options: assetOptions)
             } else {
                 NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
