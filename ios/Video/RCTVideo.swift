@@ -333,7 +333,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
                     self._player = self._player ?? AVPlayer()
                     self._player?.replaceCurrentItem(with: playerItem)
                     self._playerObserver.player = self._player
-                    self.applyModifiers(true)
+                    self.applyModifiers()
                     self._player?.actionAtItemEnd = .none
 
                     if #available(iOS 10.0, *) {
@@ -441,7 +441,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     @objc
     func setPreventsDisplaySleepDuringVideoPlayback(_ preventsDisplaySleepDuringVideoPlayback:Bool) {
         _preventsDisplaySleepDuringVideoPlayback = preventsDisplaySleepDuringVideoPlayback
-        self.applyModifiers(true)
+        self.applyModifiers()
     }
 
     @objc
@@ -460,7 +460,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
 #if os(iOS)
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.playback, mode: .moviePlayback)
+            try audioSession.setCategory(.playback)
             try audioSession.setActive(true, options: [])
         } catch {
         }
@@ -576,28 +576,17 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     }
 
     @objc
-    func setAudioOutput(_ isOn: Bool = true) {
-        let audioSession = AVAudioSession.sharedInstance()
+    func setAudioOutput(_ audioOutput:String) {
+        _audioOutput = audioOutput
         do {
-            if (isOn) {
-                try audioSession.setCategory(.playback, mode: .moviePlayback)
-            } else {
-                try audioSession.setCategory(.playback, mode: .default)
+            if audioOutput == "speaker" {
+                try AVAudioSession.sharedInstance().overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
+            } else if audioOutput == "earpiece" {
+                try AVAudioSession.sharedInstance().overrideOutputAudioPort(AVAudioSession.PortOverride.none)
             }
-            try audioSession.setActive(isOn)
         } catch {
             print("Error occurred: \(error.localizedDescription)")
         }
-        
-//        do {
-//            if audioOutput == "speaker" {
-//                try AVAudioSession.sharedInstance().overrideOutputAudioPort(AVAudioSession.PortOverride.speaker)
-//            } else if audioOutput == "earpiece" {
-//                try AVAudioSession.sharedInstance().overrideOutputAudioPort(AVAudioSession.PortOverride.none)
-//            }
-//        } catch {
-//            print("Error occurred: \(error.localizedDescription)")
-//        }
     }
 
     @objc
@@ -645,7 +634,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
     }
 
 
-    func applyModifiers(_ isOn: Bool = true) {
+    func applyModifiers() {
         if let video = _player?.currentItem,
             video == nil || video.status != AVPlayerItem.Status.readyToPlay {
             return
@@ -670,7 +659,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
             setMaxBitRate(_maxBitRate)
         }
 
-        /*setAudioOutput*/(isOn)
+        setAudioOutput(_audioOutput)
         setSelectedAudioTrack(_selectedAudioTrackCriteria)
         setSelectedTextTrack(_selectedTextTrackCriteria)
         setResizeMode(_resizeMode)
@@ -905,7 +894,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
             _presentingViewController = nil
             _playerViewController = nil
             _playerObserver.playerViewController = nil
-            self.applyModifiers(false)
+            self.applyModifiers()
 
             onVideoFullscreenPlayerDidDismiss?(["target": reactTag as Any])
         }
@@ -1166,7 +1155,7 @@ class RCTVideo: UIView, RCTVideoPlayerViewControllerDelegate, RCTPlayerObserverH
         }
         _videoLoadStarted = false
         _playerObserver.attachPlayerEventListeners()
-        applyModifiers(true)
+        applyModifiers()
     }
 
     func handlePlaybackFailed() {
