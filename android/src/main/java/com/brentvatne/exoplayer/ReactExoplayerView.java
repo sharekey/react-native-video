@@ -124,6 +124,10 @@ class ReactExoplayerView extends FrameLayout implements
         DrmSessionEventListener,
         AdEvent.AdEventListener {
 
+    private boolean isOrigAudioSetupStored = false;
+    private boolean origIsSpeakerPhoneOn = false;
+    private int origAudioMode = AudioManager.MODE_INVALID;
+
     public static final double DEFAULT_MAX_HEAP_ALLOCATION_PERCENT = 1;
     public static final double DEFAULT_MIN_BACK_BUFFER_MEMORY_RESERVE = 0;
     public static final double DEFAULT_MIN_BUFFER_MEMORY_RESERVE = 0;
@@ -309,6 +313,7 @@ class ReactExoplayerView extends FrameLayout implements
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        storeOriginalAudioSetup();
         initializePlayer();
     }
 
@@ -347,6 +352,7 @@ class ReactExoplayerView extends FrameLayout implements
 
     public void cleanUpResources() {
         stopPlayback();
+        restoreOriginalAudioSetup();
     }
 
     //BandwidthMeter.EventListener implementation
@@ -1835,8 +1841,10 @@ class ReactExoplayerView extends FrameLayout implements
             AudioManager audioManager = (AudioManager) themedReactContext.getSystemService(Context.AUDIO_SERVICE);
             boolean isSpeakerOutput = output == AudioOutput.SPEAKER;
             audioManager.setMode(
-                    isSpeakerOutput ? AudioManager.MODE_NORMAL
-                            : AudioManager.MODE_IN_COMMUNICATION);
+                    isSpeakerOutput
+                            ? AudioManager.MODE_NORMAL
+                            : AudioManager.MODE_IN_COMMUNICATION
+            );
             audioManager.setSpeakerphoneOn(isSpeakerOutput);
         }
     }
@@ -1845,6 +1853,27 @@ class ReactExoplayerView extends FrameLayout implements
         if (audioOutput != output) {
             this.audioOutput = output;
             changeAudioOutput(output);
+        }
+    }
+
+    private void storeOriginalAudioSetup() {
+        Log.d(TAG, "storeOriginalAudioSetup()");
+        if (!isOrigAudioSetupStored) {
+            origAudioMode = audioManager.getMode();
+            origIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn();
+            isOrigAudioSetupStored = true;
+        }
+    }
+
+    private void restoreOriginalAudioSetup() {
+        Log.d(TAG, "restoreOriginalAudioSetup()");
+        if (isOrigAudioSetupStored) {
+            audioManager.setSpeakerphoneOn(origIsSpeakerPhoneOn);
+            audioManager.setMode(origAudioMode);
+            if (themedReactContext.getCurrentActivity() != null) {
+                themedReactContext.getCurrentActivity().setVolumeControlStream(AudioManager.USE_DEFAULT_STREAM_TYPE);
+            }
+            isOrigAudioSetupStored = false;
         }
     }
 
