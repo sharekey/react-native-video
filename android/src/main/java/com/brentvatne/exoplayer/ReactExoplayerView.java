@@ -143,7 +143,7 @@ public class ReactExoplayerView extends FrameLayout implements
 
     private boolean isOrigAudioSetupStored = false;
     private boolean origIsSpeakerPhoneOn = false;
-    private int origAudioMode = AudioManager.MODE_INVALID;
+    private int origAudioMode = AudioManager.MODE_NORMAL;
 
     public static final double DEFAULT_MAX_HEAP_ALLOCATION_PERCENT = 1;
     public static final double DEFAULT_MIN_BACK_BUFFER_MEMORY_RESERVE = 0;
