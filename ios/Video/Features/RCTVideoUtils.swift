@@ -375,31 +375,6 @@ enum RCTVideoUtils {
         } else {
             asset = AVURLAsset(url: url!)
         }
-        
-        let url = URL(fileURLWithPath: sourceUri)
-        var assetOptions: NSMutableDictionary = NSMutableDictionary()
-        
-        var asset: AVURLAsset? {
-            if source.isNetwork {
-                if let headers = source.requestHeaders, headers.count > 0 {
-                    assetOptions.setObject(headers, forKey: "AVURLAssetHTTPHeaderFieldsKey" as NSCopying)
-                }
-                
-                if let cookies = HTTPCookieStorage.shared.cookies {
-                    assetOptions.setObject(cookies, forKey: AVURLAssetHTTPCookiesKey as NSCopying)
-                }
-                
-                guard let assetOptions = assetOptions as? [String : Any] else { return nil }
-                return AVURLAsset(url: url, options: assetOptions)
-            } else {
-                NotificationCenter.default.post(name: Notification.Name("dev_menu_logs"),
-                                                object: ["log": "prepareAsset as file",
-                                                         "key": "iOS ErrorService",
-                                                         "append": true])
-                return AVURLAsset(url: url)
-            }
-        }
-        
         return (asset, assetOptions)
     }
 
