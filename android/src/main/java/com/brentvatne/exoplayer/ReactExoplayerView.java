@@ -1901,7 +1901,7 @@ public class ReactExoplayerView extends FrameLayout implements
     }
 
     private void storeOriginalAudioSetup() {
-        Log.d(TAG, "storeOriginalAudioSetup()");
+        DebugLog.d(TAG, "storeOriginalAudioSetup()");
         if (!isOrigAudioSetupStored) {
             origAudioMode = audioManager.getMode();
             origIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn();
@@ -1910,7 +1910,7 @@ public class ReactExoplayerView extends FrameLayout implements
     }
 
     private void restoreOriginalAudioSetup() {
-        Log.d(TAG, "restoreOriginalAudioSetup()");
+        DebugLog.d(TAG, "restoreOriginalAudioSetup()");
         if (isOrigAudioSetupStored) {
             audioManager.setSpeakerphoneOn(origIsSpeakerPhoneOn);
             audioManager.setMode(origAudioMode);
