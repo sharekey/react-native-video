@@ -19,6 +19,13 @@ type Headers = ReadonlyArray<
   }>
 >;
 
+type VideoMetadata = Readonly<{
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  imageUri?: string;
+}>;
+
 export type VideoSrc = Readonly<{
   uri?: string;
   isNetwork?: boolean;
@@ -31,10 +38,7 @@ export type VideoSrc = Readonly<{
   startPosition?: Float;
   cropStart?: Float;
   cropEnd?: Float;
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  customImageUri?: string;
+  metadata?: VideoMetadata;
 }>;
 
 type DRMType = WithDefault<string, 'widevine'>;
@@ -89,6 +93,16 @@ export type Seek = Readonly<{
   tolerance?: Float;
 }>;
 
+type BufferConfigLive = Readonly<{
+  maxPlaybackSpeed?: Float;
+  minPlaybackSpeed?: Float;
+  maxOffsetMs?: Int32;
+  minOffsetMs?: Int32;
+  targetOffsetMs?: Int32;
+}>;
+
+type BufferingStrategyType = WithDefault<string, 'Default'>;
+
 type BufferConfig = Readonly<{
   minBufferMs?: Float;
   maxBufferMs?: Float;
@@ -98,6 +112,8 @@ type BufferConfig = Readonly<{
   backBufferDurationMs?: Float; // Android
   minBackBufferMemoryReservePercent?: Float;
   minBufferMemoryReservePercent?: Float;
+  cacheSizeMB?: Float;
+  live?: BufferConfigLive;
 }>;
 
 type SubtitleStyle = Readonly<{
@@ -209,7 +225,8 @@ export type OnTextTrackDataChangedData = Readonly<{
 
 export type OnVideoTracksData = Readonly<{
   videoTracks: {
-    trackId: Int32;
+    index: Int32;
+    tracksId?: string;
     codecs?: string;
     width?: Float;
     height?: Float;
@@ -266,6 +283,11 @@ export type OnAudioFocusChangedData = Readonly<{
   hasAudioFocus: boolean;
 }>;
 
+type ControlsStyles = Readonly<{
+  hideSeekBar?: boolean;
+  seekIncrementMS?: number;
+}>;
+
 export interface VideoNativeProps extends ViewProps {
   src?: VideoSrc;
   drm?: Drm;
@@ -300,7 +322,7 @@ export interface VideoNativeProps extends ViewProps {
   restoreUserInterfaceForPIPStopCompletionHandler?: boolean;
   localSourceEncryptionKeyScheme?: string;
   debug?: DebugConfig;
-
+  showNotificationControls?: WithDefault<boolean, false>; // Android, iOS
   bufferConfig?: BufferConfig; // Android
   contentStartTime?: Int32; // Android
   currentPlaybackTime?: Double; // Android
@@ -310,9 +332,10 @@ export interface VideoNativeProps extends ViewProps {
   minLoadRetryCount?: Int32; // Android
   reportBandwidth?: boolean; //Android
   subtitleStyle?: SubtitleStyle; // android
-  trackId?: string; // Android
   useTextureView?: boolean; // Android
   useSecureView?: boolean; // Android
+  bufferingStrategy?: BufferingStrategyType; // Android
+  controlsStyles?: ControlsStyles; // Android
   onVideoLoad?: DirectEventHandler<OnLoadData>;
   onVideoLoadStart?: DirectEventHandler<OnLoadStartData>;
   onVideoAspectRatio?: DirectEventHandler<OnVideoAspectRatioData>;
@@ -365,6 +388,8 @@ export interface VideoManagerType {
     licenseUrl: string,
     reactTag: number,
   ) => Promise<void>;
+  setVolume: (volume: number, reactTag: number) => Promise<void>;
+  getCurrentPosition: (reactTag: number) => Promise<number>;
 }
 
 export interface VideoDecoderPropertiesType {

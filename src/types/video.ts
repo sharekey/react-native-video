@@ -22,10 +22,7 @@ export type ReactVideoSourceProperties = {
   startPosition?: number;
   cropStart?: number;
   cropEnd?: number;
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  customImageUri?: string;
+  metadata?: VideoMetadata;
 };
 
 export type ReactVideoSource = Readonly<
@@ -33,6 +30,14 @@ export type ReactVideoSource = Readonly<
     uri?: string | NodeRequire;
   }
 >;
+
+export type VideoMetadata = Readonly<{
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  artist?: string;
+  imageUri?: string;
+}>;
 
 export type DebugConfig = Readonly<{
   enable?: boolean;
@@ -63,6 +68,20 @@ export type Drm = Readonly<{
   /* eslint-enable @typescript-eslint/no-unused-vars */
 }>;
 
+export enum BufferingStrategyType {
+  DEFAULT = 'Default',
+  DISABLE_BUFFERING = 'DisableBuffering',
+  DEPENDING_ON_MEMORY = 'DependingOnMemory',
+}
+
+export type BufferConfigLive = {
+  maxPlaybackSpeed?: number;
+  minPlaybackSpeed?: number;
+  maxOffsetMs?: number;
+  minOffsetMs?: number;
+  targetOffsetMs?: number;
+};
+
 export type BufferConfig = {
   minBufferMs?: number;
   maxBufferMs?: number;
@@ -72,6 +91,8 @@ export type BufferConfig = {
   maxHeapAllocationPercent?: number;
   minBackBufferMemoryReservePercent?: number;
   minBufferMemoryReservePercent?: number;
+  cacheSizeMB?: number;
+  live?: BufferConfigLive;
 };
 
 export enum SelectedTrackType {
@@ -96,7 +117,7 @@ export enum SelectedVideoTrackType {
 
 export type SelectedVideoTrack = {
   type: SelectedVideoTrackType;
-  value?: number;
+  value?: string | number;
 };
 
 export type SubtitleStyle = {
@@ -181,6 +202,11 @@ export enum PosterResizeModeType {
 
 export type AudioOutput = 'speaker' | 'earpiece';
 
+export type ControlsStyles = {
+  hideSeekBar?: boolean;
+  seekIncrementMS?: number;
+};
+
 export interface ReactVideoProps extends ReactVideoEvents, ViewProps {
   source?: ReactVideoSource;
   drm?: Drm;
@@ -189,6 +215,7 @@ export interface ReactVideoProps extends ReactVideoEvents, ViewProps {
   audioOutput?: AudioOutput; // Mobile
   automaticallyWaitsToMinimizeStalling?: boolean; // iOS
   bufferConfig?: BufferConfig; // Android
+  bufferingStrategy?: BufferingStrategyType;
   chapters?: Chapters[]; // iOS
   contentStartTime?: number; // Android
   controls?: boolean;
@@ -220,6 +247,7 @@ export interface ReactVideoProps extends ReactVideoEvents, ViewProps {
   repeat?: boolean;
   reportBandwidth?: boolean; //Android
   resizeMode?: EnumValues<VideoResizeMode>;
+  showNotificationControls?: boolean; // Android, iOS
   selectedAudioTrack?: SelectedTrack;
   selectedTextTrack?: SelectedTrack;
   selectedVideoTrack?: SelectedVideoTrack; // android
@@ -227,11 +255,11 @@ export interface ReactVideoProps extends ReactVideoEvents, ViewProps {
   shutterColor?: string; // Android
   textTracks?: TextTracks;
   testID?: string;
-  trackId?: string; // Android
   useTextureView?: boolean; // Android
   useSecureView?: boolean; // Android
   volume?: number;
   localSourceEncryptionKeyScheme?: string;
   debug?: DebugConfig;
   allowsExternalPlayback?: boolean; // iOS
+  controlsStyles?: ControlsStyles; // Android
 }

@@ -12,8 +12,8 @@ Pod::Spec.new do |s|
   s.license        = package['license']
   s.author         = package['author']
 
-  s.homepage       = 'https://github.com/react-native-video/react-native-video'
-  s.source         = { :git => "https://github.com/react-native-video/react-native-video.git", :tag => "v#{s.version}" }
+  s.homepage       = 'https://github.com/TheWidlarzGroup/react-native-video'
+  s.source         = { :git => "https://github.com/TheWidlarzGroup/react-native-video.git", :tag => "v#{s.version}" }
   s.platforms      = { :ios => "13.0", :tvos => "13.0", :visionos => "1.0" }
 
   s.subspec "Video" do |ss|
@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
     if defined?($RNVideoUseGoogleIMA)
       Pod::UI.puts "RNVideo: enable IMA SDK"
 
-      ss.ios.dependency 'GoogleAds-IMA-iOS-SDK', '~> 3.18.1'
+      ss.ios.dependency 'GoogleAds-IMA-iOS-SDK', '~> 3.22.1'
       ss.tvos.dependency 'GoogleAds-IMA-tvOS-SDK', '~> 4.2'
       ss.pod_target_xcconfig = {
         'OTHER_SWIFT_FLAGS' => '$(inherited) -D USE_GOOGLE_IMA'

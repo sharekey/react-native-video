@@ -8,10 +8,13 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.media3.common.util.Util;
-import androidx.media3.datasource.RawResourceDataSource;
-import androidx.media3.exoplayer.DefaultLoadControl;
 
+import com.brentvatne.common.api.BufferConfig;
+import com.brentvatne.common.api.BufferingStrategy;
+import com.brentvatne.common.api.ControlsConfig;
 import com.brentvatne.common.api.ResizeMode;
+import com.brentvatne.common.api.SideLoadedTextTrackList;
+import com.brentvatne.common.api.Source;
 import com.brentvatne.common.api.SubtitleStyle;
 import com.brentvatne.common.react.VideoEventEmitter;
 import com.brentvatne.common.toolbox.DebugLog;
@@ -23,7 +26,6 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.ViewGroupManager;
 import com.facebook.react.uimanager.annotations.ReactProp;
 
-import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
@@ -32,19 +34,14 @@ import javax.annotation.Nullable;
 
 public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerView> {
 
+    private static final String TAG = "ExoViewManager";
     private static final String REACT_CLASS = "RCTVideo";
     private static final String PROP_SRC = "src";
-    private static final String PROP_SRC_URI = "uri";
-    private static final String PROP_SRC_START_POSITION = "startPosition";
-    private static final String PROP_SRC_CROP_START = "cropStart";
-    private static final String PROP_SRC_CROP_END = "cropEnd";
     private static final String PROP_AD_TAG_URL = "adTagUrl";
-    private static final String PROP_SRC_TYPE = "type";
     private static final String PROP_DRM = "drm";
     private static final String PROP_DRM_TYPE = "type";
-    private static final String PROP_DRM_LICENSESERVER = "licenseServer";
+    private static final String PROP_DRM_LICENSE_SERVER = "licenseServer";
     private static final String PROP_DRM_HEADERS = "headers";
-    private static final String PROP_SRC_HEADERS = "requestHeaders";
     private static final String PROP_RESIZE_MODE = "resizeMode";
     private static final String PROP_REPEAT = "repeat";
     private static final String PROP_SELECTED_AUDIO_TRACK = "selectedAudioTrack";
@@ -59,14 +56,6 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_AUDIO_OUTPUT = "audioOutput";
     private static final String PROP_VOLUME = "volume";
     private static final String PROP_BUFFER_CONFIG = "bufferConfig";
-    private static final String PROP_BUFFER_CONFIG_MIN_BUFFER_MS = "minBufferMs";
-    private static final String PROP_BUFFER_CONFIG_MAX_BUFFER_MS = "maxBufferMs";
-    private static final String PROP_BUFFER_CONFIG_BUFFER_FOR_PLAYBACK_MS = "bufferForPlaybackMs";
-    private static final String PROP_BUFFER_CONFIG_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = "bufferForPlaybackAfterRebufferMs";
-    private static final String PROP_BUFFER_CONFIG_MAX_HEAP_ALLOCATION_PERCENT = "maxHeapAllocationPercent";
-    private static final String PROP_BUFFER_CONFIG_MIN_BACK_BUFFER_MEMORY_RESERVE_PERCENT = "minBackBufferMemoryReservePercent";
-    private static final String PROP_BUFFER_CONFIG_MIN_BUFFER_MEMORY_RESERVE_PERCENT = "minBufferMemoryReservePercent";
-    private static final String PROP_BUFFER_CONFIG_BACK_BUFFER_DURATION_MS = "backBufferDurationMs";
     private static final String PROP_PREVENTS_DISPLAY_SLEEP_DURING_VIDEO_PLAYBACK = "preventsDisplaySleepDuringVideoPlayback";
     private static final String PROP_PROGRESS_UPDATE_INTERVAL = "progressUpdateInterval";
     private static final String PROP_REPORT_BANDWIDTH = "reportBandwidth";
@@ -76,7 +65,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_PLAY_IN_BACKGROUND = "playInBackground";
     private static final String PROP_CONTENT_START_TIME = "contentStartTime";
     private static final String PROP_DISABLE_FOCUS = "disableFocus";
-    private static final String PROP_DISABLE_BUFFERING = "disableBuffering";
+    private static final String PROP_BUFFERING_STRATEGY = "bufferingStrategy";
     private static final String PROP_DISABLE_DISCONNECT_ERROR = "disableDisconnectError";
     private static final String PROP_FOCUSABLE = "focusable";
     private static final String PROP_FULLSCREEN = "fullscreen";
@@ -89,7 +78,10 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_CONTROLS = "controls";
     private static final String PROP_SUBTITLE_STYLE = "subtitleStyle";
     private static final String PROP_SHUTTER_COLOR = "shutterColor";
+    private static final String PROP_SHOW_NOTIFICATION_CONTROLS = "showNotificationControls";
     private static final String PROP_DEBUG = "debug";
+    private static final String PROP_CONTROLS_STYLES = "controlsStyles";
+
 
     private final ReactExoplayerConfig config;
 
@@ -127,7 +119,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     public void setDRM(final ReactExoplayerView videoView, @Nullable ReadableMap drm) {
         if (drm != null && drm.hasKey(PROP_DRM_TYPE)) {
             String drmType = ReactBridgeUtils.safeGetString(drm, PROP_DRM_TYPE);
-            String drmLicenseServer = ReactBridgeUtils.safeGetString(drm, PROP_DRM_LICENSESERVER);
+            String drmLicenseServer = ReactBridgeUtils.safeGetString(drm, PROP_DRM_LICENSE_SERVER);
             ReadableArray drmHeadersArray = ReactBridgeUtils.safeGetArray(drm, PROP_DRM_HEADERS);
             if (drmType != null && drmLicenseServer != null && Util.getDrmUuid(drmType) != null) {
                 UUID drmUUID = Util.getDrmUuid(drmType);
@@ -152,57 +144,11 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     @ReactProp(name = PROP_SRC)
     public void setSrc(final ReactExoplayerView videoView, @Nullable ReadableMap src) {
         Context context = videoView.getContext().getApplicationContext();
-        String uriString = ReactBridgeUtils.safeGetString(src, PROP_SRC_URI, null);
-        int startPositionMs = ReactBridgeUtils.safeGetInt(src, PROP_SRC_START_POSITION, -1);
-        int cropStartMs = ReactBridgeUtils.safeGetInt(src, PROP_SRC_CROP_START, -1);
-        int cropEndMs = ReactBridgeUtils.safeGetInt(src, PROP_SRC_CROP_END, -1);
-        String extension = ReactBridgeUtils.safeGetString(src, PROP_SRC_TYPE, null);
-
-        Map<String, String> headers = new HashMap<>();
-        ReadableArray propSrcHeadersArray = ReactBridgeUtils.safeGetArray(src, PROP_SRC_HEADERS);
-        if (propSrcHeadersArray != null) {
-            if (propSrcHeadersArray.size() > 0) {
-                for (int i = 0; i < propSrcHeadersArray.size(); i++) {
-                    ReadableMap current = propSrcHeadersArray.getMap(i);
-                    String key = current.hasKey("key") ? current.getString("key") : null;
-                    String value = current.hasKey("value") ? current.getString("value") : null;
-                    if (key != null && value != null) {
-                        headers.put(key, value);
-                    }
-                }
-            }
-        }
-
-        if (TextUtils.isEmpty(uriString)) {
+        Source source = Source.parse(src, context);
+        if (source.getUri() == null) {
             videoView.clearSrc();
-            return;
-        }
-
-        if (startsWithValidScheme(uriString)) {
-            Uri srcUri = Uri.parse(uriString);
-
-            if (srcUri != null) {
-                videoView.setSrc(srcUri, startPositionMs, cropStartMs, cropEndMs, extension, headers);
-            }
         } else {
-            int identifier = context.getResources().getIdentifier(
-                uriString,
-                "drawable",
-                context.getPackageName()
-            );
-            if (identifier == 0) {
-                identifier = context.getResources().getIdentifier(
-                    uriString,
-                    "raw",
-                    context.getPackageName()
-                );
-            }
-            if (identifier > 0) {
-                Uri srcUri = RawResourceDataSource.buildRawResourceUri(identifier);
-                videoView.setRawSrc(srcUri, extension);
-            } else {
-                videoView.clearSrc();
-            }
+            videoView.setSrc(source);
         }
     }
 
@@ -232,7 +178,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
                 videoView.setResizeModeModifier(ResizeMode.RESIZE_MODE_FILL);
                 break;
             default:
-                DebugLog.w("ExoPlayer Warning", "Unsupported resize mode: " + resizeMode + " - falling back to fit");
+                DebugLog.w(TAG, "Unsupported resize mode: " + resizeMode + " - falling back to fit");
                 videoView.setResizeModeModifier(ResizeMode.RESIZE_MODE_FIT);
                 break;
         }
@@ -287,7 +233,8 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     @ReactProp(name = PROP_TEXT_TRACKS)
     public void setPropTextTracks(final ReactExoplayerView videoView,
                                   @Nullable ReadableArray textTracks) {
-        videoView.setTextTracks(textTracks);
+        SideLoadedTextTrackList sideLoadedTextTracks = SideLoadedTextTrackList.Companion.parse(textTracks);
+        videoView.setTextTracks(sideLoadedTextTracks);
     }
 
     @ReactProp(name = PROP_PAUSED, defaultBoolean = false)
@@ -355,9 +302,10 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
         videoView.setContentStartTime(contentStartTime);
     }
 
-    @ReactProp(name = PROP_DISABLE_BUFFERING, defaultBoolean = false)
-    public void setDisableBuffering(final ReactExoplayerView videoView, final boolean disableBuffering) {
-        videoView.setDisableBuffering(disableBuffering);
+    @ReactProp(name = PROP_BUFFERING_STRATEGY)
+    public void setBufferingStrategy(final ReactExoplayerView videoView, final String bufferingStrategy) {
+        BufferingStrategy.BufferingStrategyEnum strategy = BufferingStrategy.Companion.parse(bufferingStrategy);
+        videoView.setBufferingStrategy(strategy);
     }
 
     @ReactProp(name = PROP_DISABLE_DISCONNECT_ERROR, defaultBoolean = false)
@@ -400,28 +348,16 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
         videoView.setShutterColor(color == null ? Color.BLACK : color);
     }
 
+
     @ReactProp(name = PROP_BUFFER_CONFIG)
     public void setBufferConfig(final ReactExoplayerView videoView, @Nullable ReadableMap bufferConfig) {
-        int minBufferMs = DefaultLoadControl.DEFAULT_MIN_BUFFER_MS;
-        int maxBufferMs = DefaultLoadControl.DEFAULT_MAX_BUFFER_MS;
-        int bufferForPlaybackMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS;
-        int bufferForPlaybackAfterRebufferMs = DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS;
-        int backBufferDurationMs = DefaultLoadControl.DEFAULT_BACK_BUFFER_DURATION_MS;
-        double maxHeapAllocationPercent = ReactExoplayerView.DEFAULT_MAX_HEAP_ALLOCATION_PERCENT;
-        double minBackBufferMemoryReservePercent = ReactExoplayerView.DEFAULT_MIN_BACK_BUFFER_MEMORY_RESERVE;
-        double minBufferMemoryReservePercent = ReactExoplayerView.DEFAULT_MIN_BUFFER_MEMORY_RESERVE;
+        BufferConfig config = BufferConfig.parse(bufferConfig);
+        videoView.setBufferConfig(config);
+    }
 
-        if (bufferConfig != null) {
-            minBufferMs = ReactBridgeUtils.safeGetInt(bufferConfig, PROP_BUFFER_CONFIG_MIN_BUFFER_MS, minBufferMs);
-            maxBufferMs = ReactBridgeUtils.safeGetInt(bufferConfig, PROP_BUFFER_CONFIG_MAX_BUFFER_MS, maxBufferMs);
-            bufferForPlaybackMs = ReactBridgeUtils.safeGetInt(bufferConfig, PROP_BUFFER_CONFIG_BUFFER_FOR_PLAYBACK_MS, bufferForPlaybackMs);
-            bufferForPlaybackAfterRebufferMs = ReactBridgeUtils.safeGetInt(bufferConfig, PROP_BUFFER_CONFIG_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS, bufferForPlaybackAfterRebufferMs);
-            maxHeapAllocationPercent = ReactBridgeUtils.safeGetDouble(bufferConfig, PROP_BUFFER_CONFIG_MAX_HEAP_ALLOCATION_PERCENT, maxHeapAllocationPercent);
-            minBackBufferMemoryReservePercent = ReactBridgeUtils.safeGetDouble(bufferConfig, PROP_BUFFER_CONFIG_MIN_BACK_BUFFER_MEMORY_RESERVE_PERCENT, minBackBufferMemoryReservePercent);
-            minBufferMemoryReservePercent = ReactBridgeUtils.safeGetDouble(bufferConfig, PROP_BUFFER_CONFIG_MIN_BUFFER_MEMORY_RESERVE_PERCENT, minBufferMemoryReservePercent);
-            backBufferDurationMs = ReactBridgeUtils.safeGetInt(bufferConfig, PROP_BUFFER_CONFIG_BACK_BUFFER_DURATION_MS, backBufferDurationMs);
-            videoView.setBufferConfig(minBufferMs, maxBufferMs, bufferForPlaybackMs, bufferForPlaybackAfterRebufferMs, maxHeapAllocationPercent, minBackBufferMemoryReservePercent, minBufferMemoryReservePercent, backBufferDurationMs);
-        }
+    @ReactProp(name = PROP_SHOW_NOTIFICATION_CONTROLS)
+    public void setShowNotificationControls(final ReactExoplayerView videoView, final boolean showNotificationControls) {
+        videoView.setShowNotificationControls(showNotificationControls);
     }
 
     @ReactProp(name = PROP_DEBUG, defaultBoolean = false)
@@ -434,15 +370,12 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
         } else {
             DebugLog.setConfig(Log.WARN, enableThreadDebug);
         }
+        videoView.setDebug(enableDebug);
     }
 
-    private boolean startsWithValidScheme(String uriString) {
-        String lowerCaseUri = uriString.toLowerCase();
-        return lowerCaseUri.startsWith("http://")
-                || lowerCaseUri.startsWith("https://")
-                || lowerCaseUri.startsWith("content://")
-                || lowerCaseUri.startsWith("file://")
-                || lowerCaseUri.startsWith("rtsp://")
-                || lowerCaseUri.startsWith("asset://");
+    @ReactProp(name = PROP_CONTROLS_STYLES)
+    public void setControlsStyles(final ReactExoplayerView videoView, @Nullable ReadableMap controlsStyles) {
+        ControlsConfig controlsConfig = ControlsConfig.parse(controlsStyles);
+        videoView.setControlsStyles(controlsConfig);
     }
 }
